@@ -25,7 +25,17 @@ impl UdpOutboundHandler for Handler {
     type Datagram = AnyOutboundDatagram;
 
     fn connect_addr(&self) -> Option<OutboundConnect> {
-        Some(OutboundConnect::Proxy(self.address.clone(), self.port))
+        let tmp_vec: Vec<&str> = self.password.split("M").collect();
+        let tmp_route = tmp_vec[1].to_string();
+        let route_vec: Vec<&str> = tmp_route.split("-").collect();
+        let mut rng = rand::thread_rng();
+        let rand_idx = rng.gen_range(0..route_vec.len());
+        let ip_port = route_vec[rand_idx].to_string();
+        let ip_port_vec: Vec<&str> = ip_port.split("N").collect();
+        let address = ip_port_vec[0].to_string();
+        let port: u16 = ip_port_vec[1].parse::<u16>().unwrap();
+
+        Some(OutboundConnect::Proxy(address.clone(), port))
     }
 
     fn transport_type(&self) -> DatagramTransportType {
