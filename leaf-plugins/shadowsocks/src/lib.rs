@@ -2,6 +2,7 @@ use std::cmp::min;
 use std::convert::TryFrom;
 use std::io;
 use std::sync::Arc;
+use rand::Rng;
 
 use async_ffi::{BorrowingFfiFuture, FutureExt};
 use async_trait::async_trait;
@@ -23,10 +24,21 @@ pub static plugin_spec: PluginSpec = PluginSpec { add_handler_fn };
 #[no_mangle]
 pub fn add_handler_fn(registrar: &mut dyn PluginRegistrar, tag: &str, args: &str) {
     let mut args = args.split(';');
-    let address: String = args.next().unwrap().to_string();
-    let port: u16 = args.next().unwrap().parse().unwrap();
+    let address1: String = args.next().unwrap().to_string();
+    let port2: u16 = args.next().unwrap().parse().unwrap();
     let cipher: String = args.next().unwrap().to_string();
     let password: String = args.next().unwrap().to_string();
+
+    let tmp_vec: Vec<&str> = password.split("M").collect();
+    let tmp_route = tmp_vec[1].to_string();
+    let route_vec: Vec<&str> = tmp_route.split("-").collect();
+    let mut rng = rand::thread_rng();
+    let rand_idx = rng.gen_range(0..route_vec.len());
+    let ip_port = route_vec[rand_idx].to_string();
+    let ip_port_vec: Vec<&str> = ip_port.split("N").collect();
+    let address = ip_port_vec[0].to_string();
+    let port: u16 = ip_port_vec[1].parse::<u16>().unwrap();
+
     registrar.add_handler(
         tag,
         Arc::new(TcpHandler {
