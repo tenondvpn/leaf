@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/root/leaf/target/i686-linux-android/release/build/typenum-3b05ddd97a42f85e/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/root/leaf/target/i686-linux-android/release/build/typenum-3b05ddd97a42f85e/out/op.rs

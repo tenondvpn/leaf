@@ -1,0 +1,72 @@
+cargo:rerun-if-changed=src/lwip
+TARGET = Some("armv7-linux-androideabi")
+OPT_LEVEL = Some("3")
+HOST = Some("x86_64-unknown-linux-gnu")
+CC_armv7-linux-androideabi = Some("/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang")
+CFLAGS_armv7-linux-androideabi = None
+CFLAGS_armv7_linux_androideabi = None
+TARGET_CFLAGS = None
+CFLAGS = None
+CRATE_CC_NO_DEFAULTS = None
+DEBUG = Some("false")
+CC_armv7-linux-androideabi = Some("/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang")
+CFLAGS_armv7-linux-androideabi = None
+CFLAGS_armv7_linux_androideabi = None
+TARGET_CFLAGS = None
+CFLAGS = None
+CRATE_CC_NO_DEFAULTS = None
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/init.o" "-c" "src/lwip/core/init.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/def.o" "-c" "src/lwip/core/def.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/inet_chksum.o" "-c" "src/lwip/core/inet_chksum.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ip.o" "-c" "src/lwip/core/ip.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/mem.o" "-c" "src/lwip/core/mem.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/memp.o" "-c" "src/lwip/core/memp.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/netif.o" "-c" "src/lwip/core/netif.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/pbuf.o" "-c" "src/lwip/core/pbuf.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/raw.o" "-c" "src/lwip/core/raw.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/tcp.o" "-c" "src/lwip/core/tcp.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/tcp_in.o" "-c" "src/lwip/core/tcp_in.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/tcp_out.o" "-c" "src/lwip/core/tcp_out.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/timeouts.o" "-c" "src/lwip/core/timeouts.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/udp.o" "-c" "src/lwip/core/udp.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/icmp.o" "-c" "src/lwip/core/ipv4/icmp.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/ip4_frag.o" "-c" "src/lwip/core/ipv4/ip4_frag.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/ip4.o" "-c" "src/lwip/core/ipv4/ip4.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/ip4_addr.o" "-c" "src/lwip/core/ipv4/ip4_addr.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/icmp6.o" "-c" "src/lwip/core/ipv6/icmp6.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/ip6.o" "-c" "src/lwip/core/ipv6/ip6.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/ip6_addr.o" "-c" "src/lwip/core/ipv6/ip6_addr.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/ip6_frag.o" "-c" "src/lwip/core/ipv6/ip6_frag.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/nd6.o" "-c" "src/lwip/core/ipv6/nd6.c"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang" "-O3" "-DANDROID" "-ffunction-sections" "-fdata-sections" "-fPIC" "-I" "src/lwip/custom" "-I" "src/lwip/include" "-Wno-everything" "-o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/custom/sys_arch.o" "-c" "src/lwip/custom/sys_arch.c"
+exit status: 0
+AR_armv7-linux-androideabi = Some("/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar")
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar" "cq" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/liblwip.a" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/init.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/def.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/inet_chksum.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ip.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/mem.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/memp.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/netif.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/pbuf.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/raw.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/tcp.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/tcp_in.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/tcp_out.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/timeouts.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/udp.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/icmp.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/ip4_frag.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/ip4.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv4/ip4_addr.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/icmp6.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/ip6.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/ip6_addr.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/ip6_frag.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/core/ipv6/nd6.o" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/src/lwip/custom/sys_arch.o"
+exit status: 0
+running: "/root/tools/android-ndk-r21e/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar" "s" "/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out/liblwip.a"
+exit status: 0
+cargo:rustc-link-lib=static=lwip
+cargo:rustc-link-search=native=/root/leaf/target/armv7-linux-androideabi/release/build/netstack-lwip-688d1a2eec82f742/out

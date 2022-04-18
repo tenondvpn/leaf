@@ -8,7 +8,6 @@ use bytes::BytesMut;
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 
 #[cfg(target_os = "android")]
-use super::bindings::{__android_log_print, android_LogPriority_ANDROID_LOG_VERBOSE};
 
 #[cfg(any(target_os = "ios", target_os = "macos"))]
 fn log_out(data: &[u8]) {
@@ -27,11 +26,6 @@ fn log_out(data: &[u8]) {
             Ok(s) => s,
             Err(_) => return,
         };
-        let _ = __android_log_print(
-            android_LogPriority_ANDROID_LOG_VERBOSE as std::os::raw::c_int,
-            "leaf".as_ptr() as _,
-            s.as_c_str().as_ptr(),
-        );
     }
 }
 
