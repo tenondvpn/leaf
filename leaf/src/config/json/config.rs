@@ -10,12 +10,6 @@ use serde_json::value::RawValue;
 use crate::config::{external_rule, internal};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Api {
-    pub address: Option<String>,
-    pub port: Option<u16>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub struct Dns {
     pub servers: Option<Vec<String>>,
     pub hosts: Option<HashMap<String, Vec<String>>>,
@@ -35,7 +29,7 @@ pub struct ShadowsocksInboundSettings {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TrojanInboundSettings {
-    pub password: Option<String>,
+    pub passwords: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -125,8 +119,9 @@ pub struct TryAllOutboundSettings {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct RandomOutboundSettings {
+pub struct StaticOutboundSettings {
     pub actors: Option<Vec<String>>,
+    pub method: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -221,6 +216,8 @@ pub struct Rule {
     pub external: Option<Vec<String>>,
     #[serde(rename = "portRange")]
     pub port_range: Option<Vec<String>>,
+    #[serde(rename = "inboundTag")]
+    pub inbound_tag: Option<Vec<String>>,
     pub target: String,
 }
 
@@ -238,7 +235,6 @@ pub struct Config {
     pub outbounds: Option<Vec<Outbound>>,
     pub router: Option<Router>,
     pub dns: Option<Dns>,
-    pub api: Option<Api>,
 }
 
 pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
@@ -253,8 +249,6 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
                 "error" => log.level = internal::Log_Level::ERROR,
                 _ => log.level = internal::Log_Level::WARN,
             }
-        } else {
-            log.level = internal::Log_Level::INFO;
         }
 
         if let Some(ext_output) = &ext_log.output {
@@ -265,12 +259,7 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
                     log.output_file = ext_output.clone();
                 }
             }
-        } else {
-            log.output = internal::Log_Output::CONSOLE;
         }
-    } else {
-        log.level = internal::Log_Level::INFO;
-        log.output = internal::Log_Output::CONSOLE;
     }
 
     let mut inbounds = protobuf::RepeatedField::new();
@@ -376,10 +365,10 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
                     let mut settings = internal::TrojanInboundSettings::new();
                     let ext_settings: TrojanInboundSettings =
                         serde_json::from_str(ext_inbound.settings.as_ref().unwrap().get()).unwrap();
-                    if let Some(ext_password) = ext_settings.password {
-                        settings.password = ext_password;
-                    } else {
-                        settings.password = "".to_string(); // FIXME warns?
+                    if let Some(ext_passwords) = ext_settings.passwords {
+                        for ext_pass in ext_passwords {
+                            settings.passwords.push(ext_pass);
+                        }
                     }
                     let settings = settings.write_to_bytes().unwrap();
                     inbound.settings = settings;
@@ -666,18 +655,23 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
                     outbound.settings = settings;
                     outbounds.push(outbound);
                 }
-                "random" => {
+                "static" => {
                     if ext_outbound.settings.is_none() {
-                        return Err(anyhow!("invalid random outbound settings"));
+                        return Err(anyhow!("invalid static outbound settings"));
                     }
-                    let mut settings = internal::RandomOutboundSettings::new();
-                    let ext_settings: RandomOutboundSettings =
+                    let mut settings = internal::StaticOutboundSettings::new();
+                    let ext_settings: StaticOutboundSettings =
                         serde_json::from_str(ext_outbound.settings.as_ref().unwrap().get())
                             .unwrap();
                     if let Some(ext_actors) = ext_settings.actors {
                         for ext_actor in ext_actors {
                             settings.actors.push(ext_actor);
                         }
+                    }
+                    if let Some(ext_method) = &ext_settings.method {
+                        settings.method = ext_method.clone();
+                    } else {
+                        settings.method = "random".to_string();
                     }
                     let settings = settings.write_to_bytes().unwrap();
                     outbound.settings = settings;
@@ -815,28 +809,6 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
                     outbound.settings = settings;
                     outbounds.push(outbound);
                 }
-                "retry" => {
-                    if ext_outbound.settings.is_none() {
-                        return Err(anyhow!("invalid retry outbound settings"));
-                    }
-                    let mut settings = internal::RetryOutboundSettings::new();
-                    let ext_settings: RetryOutboundSettings =
-                        serde_json::from_str(ext_outbound.settings.as_ref().unwrap().get())
-                            .unwrap();
-                    if let Some(ext_actors) = ext_settings.actors {
-                        for ext_actor in ext_actors {
-                            settings.actors.push(ext_actor);
-                        }
-                    }
-                    if let Some(ext_attempts) = ext_settings.attempts {
-                        settings.attempts = ext_attempts;
-                    } else {
-                        settings.attempts = 2;
-                    }
-                    let settings = settings.write_to_bytes().unwrap();
-                    outbound.settings = settings;
-                    outbounds.push(outbound);
-                }
                 "select" => {
                     if ext_outbound.settings.is_none() {
                         return Err(anyhow!("invalid select outbound settings"));
@@ -943,6 +915,11 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
                         rule.port_ranges.push(ext_port_range);
                     }
                 }
+                if let Some(ext_its) = ext_rule.inbound_tag.as_mut() {
+                    for it in ext_its.drain(0..) {
+                        rule.inbound_tags.push(it);
+                    }
+                }
                 rules.push(rule);
             }
         }
@@ -983,28 +960,12 @@ pub fn to_internal(json: &mut Config) -> Result<internal::Config> {
         dns.hosts = hosts;
     }
 
-    let api = if let Some(ext_api) = json.api.as_ref() {
-        if let (Some(ext_address), Some(ext_port)) =
-            (ext_api.address.as_ref(), ext_api.port.as_ref())
-        {
-            let mut api = internal::Api::new();
-            api.address = ext_address.to_owned();
-            api.port = ext_port.to_owned() as u32;
-            protobuf::SingularPtrField::some(api)
-        } else {
-            protobuf::SingularPtrField::none()
-        }
-    } else {
-        protobuf::SingularPtrField::none()
-    };
-
     let mut config = internal::Config::new();
     config.log = protobuf::SingularPtrField::some(log);
     config.inbounds = inbounds;
     config.outbounds = outbounds;
     config.router = router;
     config.dns = protobuf::SingularPtrField::some(dns);
-    config.api = api;
     Ok(config)
 }
 

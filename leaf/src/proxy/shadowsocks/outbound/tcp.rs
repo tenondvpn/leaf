@@ -1,8 +1,7 @@
 use std::io;
-extern crate rand;
-use rand::Rng;
+
 use async_trait::async_trait;
-use bytes::{BufMut, BytesMut};
+use bytes::BytesMut;
 use tokio::io::AsyncWriteExt;
 
 use super::shadow::ShadowedStream;
@@ -23,16 +22,7 @@ impl TcpOutboundHandler for Handler {
     type Stream = AnyStream;
 
     fn connect_addr(&self) -> Option<OutboundConnect> {
-        let tmp_vec: Vec<&str> = self.password.split("M").collect();
-        let tmp_route = tmp_vec[1].to_string();
-        let route_vec: Vec<&str> = tmp_route.split("-").collect();
-        let mut rng = rand::thread_rng();
-        let rand_idx = rng.gen_range(0..route_vec.len());
-        let ip_port = route_vec[rand_idx].to_string();
-        let ip_port_vec: Vec<&str> = ip_port.split("N").collect();
-        let address = ip_port_vec[0].to_string();
-        let port: u16 = ip_port_vec[1].parse::<u16>().unwrap();
-        Some(OutboundConnect::Proxy(address.clone(), port))
+        Some(OutboundConnect::Proxy(self.address.clone(), self.port))
     }
 
     async fn handle<'a>(
@@ -44,8 +34,7 @@ impl TcpOutboundHandler for Handler {
         let mut stream = ShadowedStream::new(stream, &self.cipher, &self.password)?;
         let mut buf = BytesMut::new();
         sess.destination
-            .write_buf(&mut buf, SocksAddrWireType::PortLast)?;
-        // FIXME combine header and first payload
+            .write_buf(&mut buf, SocksAddrWireType::PortLast);
         stream.write_all(&buf).await?;
         Ok(Box::new(stream))
     }

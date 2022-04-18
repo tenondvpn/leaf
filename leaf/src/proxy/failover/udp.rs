@@ -30,11 +30,93 @@ pub struct Handler {
     pub fail_timeout: u32,
     pub schedule: Arc<TokioMutex<Vec<usize>>>,
     pub health_check_task: TokioMutex<Option<BoxFuture<'static, ()>>>,
+    pub last_resort: Option<AnyOutboundHandler>,
     pub dns_client: SyncDnsClient,
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Measure(usize, u128); // (index, duration in millis)
+
+async fn health_check_task(
+    i: usize,
+    h: AnyOutboundHandler,
+    dns_client: SyncDnsClient,
+    mut delay: Option<time::Duration>,
+    health_check_timeout: u32,
+) -> Measure {
+    if let Some(d) = delay.take() {
+        tokio::time::sleep(d).await;
+    }
+    debug!("health checking udp for [{}] index [{}]", h.tag(), i);
+    let measure = async move {
+        let sess = Session {
+            destination: SocksAddr::Ip(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)), 53)),
+            ..Default::default()
+        };
+        let start = tokio::time::Instant::now();
+        let transport = match crate::proxy::connect_udp_outbound(&sess, dns_client, &h).await {
+            Ok(t) => t,
+            Err(_) => return Measure(i, u128::MAX),
+        };
+        match UdpOutboundHandler::handle(h.as_ref(), &sess, transport).await {
+            Ok(socket) => {
+                let addr =
+                    SocksAddr::Ip(SocketAddr::new(IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)), 53));
+                let mut msg = Message::new();
+                let name = match Name::from_str("www.google.com.") {
+                    Ok(n) => n,
+                    Err(e) => {
+                        warn!("invalid domain name: {}", e);
+                        return Measure(i, u128::MAX);
+                    }
+                };
+                let query = Query::query(name, RecordType::A);
+                msg.add_query(query);
+                let mut rng = StdRng::from_entropy();
+                let id: u16 = rng.gen();
+                msg.set_id(id);
+                msg.set_op_code(OpCode::Query);
+                msg.set_message_type(MessageType::Query);
+                msg.set_recursion_desired(true);
+                let msg_buf = match msg.to_vec() {
+                    Ok(b) => b,
+                    Err(e) => {
+                        warn!("encode message to buffer failed: {}", e);
+                        return Measure(i, u128::MAX);
+                    }
+                };
+
+                let (mut recv, mut send) = socket.split();
+
+                if send.send_to(&msg_buf, &addr).await.is_err() {
+                    return Measure(i, u128::MAX - 2); // handshake is ok
+                }
+                let mut buf = [0u8; 1500];
+                match recv.recv_from(&mut buf).await {
+                    // handshake, write and read are ok
+                    Ok(_) => {
+                        let elapsed = tokio::time::Instant::now().duration_since(start);
+                        Measure(i, elapsed.as_millis())
+                    }
+                    // handshake and write are ok
+                    Err(_) => Measure(i, u128::MAX - 3),
+                }
+            }
+            // handshake not ok
+            Err(_) => Measure(i, u128::MAX),
+        }
+    };
+    match timeout(
+        time::Duration::from_secs(health_check_timeout.into()),
+        measure,
+    )
+    .await
+    {
+        Ok(m) => m,
+        // timeout, better than handshake error
+        Err(_) => Measure(i, u128::MAX - 1),
+    }
+}
 
 impl Handler {
     pub fn new(
@@ -43,6 +125,8 @@ impl Handler {
         health_check: bool,
         check_interval: u32,
         failover: bool,
+        last_resort: Option<AnyOutboundHandler>,
+        health_check_timeout: u32,
         dns_client: SyncDnsClient,
     ) -> (Self, Vec<AbortHandle>) {
         let mut abort_handles = Vec::new();
@@ -55,89 +139,29 @@ impl Handler {
         let schedule2 = schedule.clone();
         let actors2 = actors.clone();
         let dns_client2 = dns_client.clone();
+        let last_resort2 = last_resort.clone();
         let task = if health_check {
             let fut = async move {
                 loop {
-                    let mut measures: Vec<Measure> = Vec::new();
+                    let mut checks = Vec::new();
+                    let dns_client3 = dns_client2.clone();
+                    let mut rng = StdRng::from_entropy();
                     for (i, a) in (&actors2).iter().enumerate() {
-                        debug!("health checking udp for [{}] index [{}]", a.tag(), i);
-                        let dns_client3 = dns_client2.clone();
-                        let single_measure = async move {
-                            let sess = Session {
-                                destination: SocksAddr::Ip(SocketAddr::new(
-                                    IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)),
-                                    53,
-                                )),
-                                ..Default::default()
-                            };
-                            let start = tokio::time::Instant::now();
-                            let transport =
-                                match crate::proxy::connect_udp_outbound(&sess, dns_client3, &a)
-                                    .await
-                                {
-                                    Ok(t) => t,
-                                    Err(_) => return Measure(i, u128::MAX),
-                                };
-                            match UdpOutboundHandler::handle(a.as_ref(), &sess, transport).await {
-                                Ok(socket) => {
-                                    let addr = SocksAddr::Ip(SocketAddr::new(
-                                        IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8)),
-                                        53,
-                                    ));
-                                    let mut msg = Message::new();
-                                    let name = match Name::from_str("www.google.com.") {
-                                        Ok(n) => n,
-                                        Err(e) => {
-                                            warn!("invalid domain name: {}", e);
-                                            return Measure(i, u128::MAX);
-                                        }
-                                    };
-                                    let query = Query::query(name, RecordType::A);
-                                    msg.add_query(query);
-                                    let mut rng = StdRng::from_entropy();
-                                    let id: u16 = rng.gen();
-                                    msg.set_id(id);
-                                    msg.set_op_code(OpCode::Query);
-                                    msg.set_message_type(MessageType::Query);
-                                    msg.set_recursion_desired(true);
-                                    let msg_buf = match msg.to_vec() {
-                                        Ok(b) => b,
-                                        Err(e) => {
-                                            warn!("encode message to buffer failed: {}", e);
-                                            return Measure(i, u128::MAX);
-                                        }
-                                    };
-
-                                    let (mut recv, mut send) = socket.split();
-
-                                    if send.send_to(&msg_buf, &addr).await.is_err() {
-                                        return Measure(i, u128::MAX - 2); // handshake is ok
-                                    }
-                                    let mut buf = [0u8; 1500];
-                                    match recv.recv_from(&mut buf).await {
-                                        // handshake, write and read are ok
-                                        Ok(_) => {
-                                            let elapsed =
-                                                tokio::time::Instant::now().duration_since(start);
-                                            Measure(i, elapsed.as_millis())
-                                        }
-                                        // handshake and write are ok
-                                        Err(_) => Measure(i, u128::MAX - 3),
-                                    }
-                                }
-                                // handshake not ok
-                                Err(_) => Measure(i, u128::MAX),
-                            }
+                        let dns_client4 = dns_client3.clone();
+                        let delay: Option<time::Duration> = if actors2.len() >= 4 {
+                            Some(time::Duration::from_millis(rng.gen_range(0..=1000) as u64))
+                        } else {
+                            None
                         };
-                        match timeout(time::Duration::from_secs(10), single_measure).await {
-                            Ok(m) => {
-                                measures.push(m);
-                            }
-                            Err(_) => {
-                                measures.push(Measure(i, u128::MAX - 1)); // timeout, better than handshake error
-                            }
-                        }
+                        checks.push(Box::pin(health_check_task(
+                            i,
+                            a.clone(),
+                            dns_client4,
+                            delay,
+                            health_check_timeout,
+                        )));
                     }
+                    let mut measures = futures::future::join_all(checks).await;
 
                     measures.sort_by(|a, b| a.1.cmp(&b.1));
                     trace!("sorted udp health check results:\n{:#?}", measures);
@@ -160,14 +184,28 @@ impl Handler {
 
                     let mut schedule = schedule2.lock().await;
                     schedule.clear();
-                    if !failover {
-                        // if failover is disabled, put only 1 actor in schedule
-                        schedule.push(measures[0].0);
-                        trace!("put {} in schedule", measures[0].0);
-                    } else {
-                        for m in measures {
-                            schedule.push(m.0);
-                            trace!("put {} in schedule", m.0);
+
+                    let all_failed = |measures: &Vec<Measure>| -> bool {
+                        let threshold =
+                            time::Duration::from_secs(health_check_timeout.into()).as_millis();
+                        for m in measures.iter() {
+                            if m.1 < threshold {
+                                return false;
+                            }
+                        }
+                        true
+                    };
+
+                    if !(last_resort2.is_some() && all_failed(&measures)) {
+                        if !failover {
+                            // if failover is disabled, put only 1 actor in schedule
+                            schedule.push(measures[0].0);
+                            trace!("put {} in schedule", measures[0].0);
+                        } else {
+                            for m in measures {
+                                schedule.push(m.0);
+                                trace!("put {} in schedule", m.0);
+                            }
                         }
                     }
 
@@ -190,6 +228,7 @@ impl Handler {
                 fail_timeout,
                 schedule,
                 health_check_task: TokioMutex::new(task),
+                last_resort,
                 dns_client,
             },
             abort_handles,
@@ -220,6 +259,24 @@ impl UdpOutboundHandler for Handler {
         }
 
         let schedule = self.schedule.lock().await.clone();
+
+        if schedule.is_empty() && self.last_resort.is_some() {
+            let handle = async {
+                let transport = crate::proxy::connect_udp_outbound(
+                    sess,
+                    self.dns_client.clone(),
+                    &self.last_resort.as_ref().unwrap(),
+                )
+                .await?;
+                UdpOutboundHandler::handle(
+                    self.last_resort.as_ref().unwrap().as_ref(),
+                    sess,
+                    transport,
+                )
+                .await
+            };
+            return handle.await;
+        }
 
         for i in schedule {
             if i >= self.actors.len() {

@@ -10,6 +10,7 @@ use futures::stream::Stream;
 use futures::TryFutureExt;
 use log::*;
 use socket2::SockRef;
+use thiserror::Error;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpSocket, TcpStream, UdpSocket};
 use tokio::time::timeout;
@@ -34,7 +35,6 @@ use crate::{
 pub mod datagram;
 pub mod inbound;
 pub mod outbound;
-pub mod stream;
 
 pub mod null;
 
@@ -52,20 +52,16 @@ pub mod failover;
 pub mod http;
 #[cfg(any(feature = "inbound-quic", feature = "outbound-quic"))]
 pub mod quic;
-#[cfg(feature = "outbound-random")]
-pub mod random;
 #[cfg(feature = "outbound-redirect")]
 pub mod redirect;
-#[cfg(feature = "outbound-retry")]
-pub mod retry;
-#[cfg(feature = "outbound-rr")]
-pub mod rr;
 #[cfg(feature = "outbound-select")]
 pub mod select;
 #[cfg(any(feature = "inbound-shadowsocks", feature = "outbound-shadowsocks"))]
 pub mod shadowsocks;
 #[cfg(any(feature = "inbound-socks", feature = "outbound-socks"))]
 pub mod socks;
+#[cfg(feature = "outbound-static")]
+pub mod r#static;
 #[cfg(feature = "outbound-tls")]
 pub mod tls;
 #[cfg(any(feature = "inbound-trojan", feature = "outbound-trojan"))]
@@ -89,7 +85,16 @@ pub use datagram::{
     SimpleInboundDatagram, SimpleInboundDatagramRecvHalf, SimpleInboundDatagramSendHalf,
     SimpleOutboundDatagram, SimpleOutboundDatagramRecvHalf, SimpleOutboundDatagramSendHalf,
 };
-pub use stream::BufHeadProxyStream;
+
+#[derive(Error, Debug)]
+pub enum ProxyError {
+    #[error(transparent)]
+    DatagramWarn(anyhow::Error),
+    #[error(transparent)]
+    DatagramFatal(anyhow::Error),
+}
+
+pub type ProxyResult<T> = std::result::Result<T, ProxyError>;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum DatagramTransportType {
@@ -262,12 +267,16 @@ async fn bind_socket<T: BindSocket>(socket: &T, indicator: &SocketAddr) -> io::R
                 }
             }
             OutboundBind::Ip(addr) => {
-                if let Err(e) = socket.bind(addr) {
-                    last_err = Some(e);
-                    continue;
+                if (addr.is_ipv4() && indicator.is_ipv4())
+                    || (addr.is_ipv6() && indicator.is_ipv6())
+                {
+                    if let Err(e) = socket.bind(addr) {
+                        last_err = Some(e);
+                        continue;
+                    }
+                    trace!("socket bind {}", addr);
+                    return Ok(());
                 }
-                trace!("socket bind {}", addr);
-                return Ok(());
             }
         }
     }
@@ -282,13 +291,25 @@ async fn bind_socket<T: BindSocket>(socket: &T, indicator: &SocketAddr) -> io::R
 // New UDP socket.
 pub async fn new_udp_socket(indicator: &SocketAddr) -> io::Result<UdpSocket> {
     use socket2::{Domain, Socket, Type};
-    let socket = match indicator {
-        SocketAddr::V4(..) => Socket::new(Domain::IPV4, Type::DGRAM, None)?,
-        SocketAddr::V6(..) => Socket::new(Domain::IPV6, Type::DGRAM, None)?,
+    let socket = if *option::ENABLE_IPV6 {
+        // Dual-stack socket.
+        // FIXME Windows IPV6_V6ONLY?
+        Socket::new(Domain::IPV6, Type::DGRAM, None)?
+    } else {
+        match indicator {
+            SocketAddr::V4(..) => Socket::new(Domain::IPV4, Type::DGRAM, None)?,
+            SocketAddr::V6(..) => Socket::new(Domain::IPV6, Type::DGRAM, None)?,
+        }
     };
     socket.set_nonblocking(true)?;
 
-    bind_socket(&socket, indicator).await?;
+    // If the proxy request is coming from an inbound listens on the loopback,
+    // the indicator could be a loopback address, we must ignore it.
+    if indicator.ip().is_loopback() || *option::ENABLE_IPV6 {
+        bind_socket(&socket, &*option::UNSPECIFIED_BIND_ADDR).await?;
+    } else {
+        bind_socket(&socket, indicator).await?;
+    }
 
     #[cfg(target_os = "android")]
     protect_socket(socket.as_raw_fd()).await?;
@@ -305,7 +326,6 @@ fn apply_socket_opts<S: AsRawFd>(socket: &S) -> io::Result<()> {
     let sock_ref = SockRef::from(socket);
     apply_socket_opts_internal(sock_ref)
 }
-
 #[cfg(windows)]
 fn apply_socket_opts<S: AsRawSocket>(socket: &S) -> io::Result<()> {
     let sock_ref = SockRef::from(socket);
@@ -667,7 +687,7 @@ pub trait InboundDatagramRecvHalf: Sync + Send + Unpin {
     async fn recv_from(
         &mut self,
         buf: &mut [u8],
-    ) -> io::Result<(usize, DatagramSource, Option<SocksAddr>)>;
+    ) -> ProxyResult<(usize, DatagramSource, SocksAddr)>;
 }
 
 /// The send half.
@@ -683,7 +703,7 @@ pub trait InboundDatagramSendHalf: Sync + Send + Unpin {
     async fn send_to(
         &mut self,
         buf: &[u8],
-        src_addr: Option<&SocksAddr>,
+        src_addr: &SocksAddr,
         dst_addr: &SocketAddr,
     ) -> io::Result<usize>;
 }
@@ -692,7 +712,7 @@ pub enum BaseInboundTransport<S, D> {
     /// The reliable transport.
     Stream(S, Session),
     /// The unreliable transport.
-    Datagram(D),
+    Datagram(D, Option<Session>),
     /// None.
     Empty,
 }
@@ -709,7 +729,7 @@ pub enum InboundTransport<S, D> {
     /// The reliable transport.
     Stream(S, Session),
     /// The unreliable transport.
-    Datagram(D),
+    Datagram(D, Option<Session>),
     Incoming(IncomingTransport<S, D>),
     /// None.
     Empty,

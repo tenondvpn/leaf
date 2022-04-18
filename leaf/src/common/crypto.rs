@@ -53,7 +53,6 @@ pub mod aead {
             m.insert("chacha20-ietf-poly1305", symm::Cipher::chacha20_poly1305());
             m.insert("aes-256-gcm", symm::Cipher::aes_256_gcm());
             m.insert("aes-128-gcm", symm::Cipher::aes_128_gcm());
-            m.insert("aes-128-cfb", symm::Cipher::aes_128_cfb());
             m
         };
     }

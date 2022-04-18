@@ -112,7 +112,9 @@ impl InboundManager {
                 "trojan" => {
                     let settings =
                         config::TrojanInboundSettings::parse_from_bytes(&inbound.settings).unwrap();
-                    let tcp = Arc::new(trojan::inbound::TcpHandler::new(&settings.password));
+                    let tcp = Arc::new(trojan::inbound::TcpHandler::new(
+                        settings.passwords.to_vec(),
+                    ));
                     let handler =
                         Arc::new(proxy::inbound::Handler::new(tag.clone(), Some(tcp), None));
                     handlers.insert(tag.clone(), handler);
@@ -196,15 +198,21 @@ impl InboundManager {
                         if actors.is_empty() {
                             continue;
                         }
-                        let tcp = Arc::new(chain::inbound::TcpHandler {
-                            actors: actors.clone(),
-                        });
-                        let udp = Arc::new(chain::inbound::UdpHandler { actors });
-                        let handler = Arc::new(proxy::inbound::Handler::new(
-                            tag.clone(),
-                            Some(tcp),
-                            Some(udp),
-                        ));
+                        let tcp = if actors[0].has_tcp() {
+                            let h = Arc::new(chain::inbound::TcpHandler {
+                                actors: actors.clone(),
+                            });
+                            Some(h as crate::proxy::AnyTcpInboundHandler)
+                        } else {
+                            None
+                        };
+                        let udp = if actors[0].has_udp() {
+                            let h = Arc::new(chain::inbound::UdpHandler { actors });
+                            Some(h as crate::proxy::AnyUdpInboundHandler)
+                        } else {
+                            None
+                        };
+                        let handler = Arc::new(proxy::inbound::Handler::new(tag.clone(), tcp, udp));
                         handlers.insert(tag.clone(), handler);
                     }
                     _ => (),

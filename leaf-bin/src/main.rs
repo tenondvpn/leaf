@@ -9,7 +9,9 @@ const COMMIT_DATE: Option<&'static str> = option_env!("CFG_COMMIT_DATE");
 fn get_version_string() -> String {
     match (VERSION, COMMIT_HASH, COMMIT_DATE) {
         (Some(ver), None, None) => ver.to_string(),
-        (Some(ver), Some(hash), Some(date)) => format!("{} ({} - {})", ver, hash, date),
+        (Some(ver), Some(hash), Some(date)) => {
+            format!("{} ({} - {})", ver, hash, date)
+        }
         _ => "unknown".to_string(),
     }
 }
@@ -52,6 +54,11 @@ struct Args {
     #[argh(option, short = 't')]
     test_outbound: Option<String>,
 
+    /// bound interface, explicitly sets the OUTBOUND_INTERFACE environment variable
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    #[argh(option, short = 'b')]
+    boundif: Option<String>,
+
     /// prints version
     #[argh(switch, short = 'V')]
     version: bool,
@@ -73,6 +80,11 @@ fn main() {
             println!("ok");
             exit(0);
         }
+    }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    if let Some(iface) = args.boundif {
+        std::env::set_var("OUTBOUND_INTERFACE", &iface);
     }
 
     if let Some(tag) = args.test_outbound {

@@ -6,6 +6,10 @@ ios-dev:
 	cargo lipo -p leaf-ffi
 	cbindgen --config leaf-ffi/cbindgen.toml leaf-ffi/src/lib.rs > target/universal/debug/leaf.h
 
+ios-opt:
+	RUSTFLAGS="-Z strip=symbols" cargo lipo --release --targets aarch64-apple-ios --manifest-path leaf-ffi/Cargo.toml --no-default-features --features "default-openssl"
+	cbindgen --config leaf-ffi/cbindgen.toml leaf-ffi/src/lib.rs > target/universal/release/leaf.h
+
 lib:
 	cargo build -p leaf-ffi --release
 	cbindgen --config leaf-ffi/cbindgen.toml leaf-ffi/src/lib.rs > target/release/leaf.h
@@ -25,10 +29,6 @@ mipsel:
 
 mips:
 	./misc/build_cross.sh mips-unknown-linux-musl
-
-android:
-	cargo ndk -t armeabi-v7a -t x86 -t x86_64 -t arm64-v8a build --release -p leaf-ffi
-	cbindgen --config leaf-ffi/cbindgen.toml leaf-ffi/src/lib.rs > target/universal/release/leaf.h
 
 test:
 	cargo test -p leaf -- --nocapture
